@@ -9,7 +9,8 @@ import { dirname } from 'node:path';
 const FEEDS_PATH = 'feeds.json';
 const OUT_PATH = 'public/data.json';
 
-const MAX_ITEMS = 200;     // 出力する記事の上限
+const MAX_ITEMS = 200;     // 出力する記事の上限（全体）
+const MAX_PER_FEED = 15;   // 1フィードあたりの最大件数（特定フィードの独占を防ぐ）
 const MAX_AGE_DAYS = 45;   // これより古い記事は除外（日付不明の記事は残す）
 const SNIPPET_LEN = 220;   // 概要テキストの最大文字数
 
@@ -111,6 +112,18 @@ async function main() {
     const ta = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
     const tb = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
     return tb - ta;
+  });
+
+  // 1フィードあたりの件数を制限する
+  //  新しい順に走査し、各ソースが MAX_PER_FEED 件に達したらそれ以上は捨てる。
+  //  → arXiv のような大量フィードが表示枠を独占するのを防ぎ、
+  //    ニュースや日本語記事も枠に入るようにする。
+  const perFeed = {};
+  items = items.filter((it) => {
+    const n = (perFeed[it.source] || 0) + 1;
+    if (n > MAX_PER_FEED) return false;
+    perFeed[it.source] = n;
+    return true;
   });
 
   items = items.slice(0, MAX_ITEMS);
