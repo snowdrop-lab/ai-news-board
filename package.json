@@ -1,0 +1,13 @@
+{
+  "name": "ai-news-board",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "社内向け AI 最新情報ボード（RSS を1日1回収集）",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "rss-parser": "^3.13.0"
+  }
+}

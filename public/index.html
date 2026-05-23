@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>AI 情報ボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans+JP:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #f3efe4;
+    --paper-2: #ece6d6;
+    --ink: #20211d;
+    --ink-soft: #5b5a4f;
+    --ink-faint: #8a887b;
+    --rule: #cdc6b2;
+    --accent: #c8431f;
+    --accent-deep: #9c3014;
+    --card: #faf7ee;
+    --shadow: rgba(32, 33, 29, 0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 12% 0%, rgba(200,67,31,0.05), transparent 45%),
+      radial-gradient(circle at 90% 8%, rgba(32,33,29,0.04), transparent 40%);
+    color: var(--ink);
+    font-family: "IBM Plex Sans JP", system-ui, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 20px 80px;
+  }
+
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  /* ---- masthead ---- */
+  header { padding: 38px 0 22px; border-bottom: 3px double var(--ink); }
+
+  .kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .kicker::before,
+  .kicker::after { content: ""; height: 1px; background: var(--rule); flex: 0 0 28px; }
+  .kicker::after { flex: 1; }
+
+  h1 {
+    font-family: "Newsreader", serif;
+    font-weight: 600;
+    font-size: clamp(2.4rem, 7vw, 3.6rem);
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    margin: 12px 0 4px;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+
+  .meta {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-top: 14px;
+  }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .dot { color: var(--rule); }
+
+  /* ---- toolbar ---- */
+  .toolbar { padding: 20px 0; display: flex; flex-direction: column; gap: 14px; }
+
+  .disclaimer {
+    margin-top: 16px;
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 10px 14px;
+  }
+  .disclaimer b { color: var(--ink); font-weight: 600; }
+
+  .search {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 11px 14px;
+    font-family: "IBM Plex Sans JP", sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .search::placeholder { color: var(--ink-faint); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    padding: 5px 12px;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--ink-soft);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .chip:hover { border-color: var(--ink-soft); color: var(--ink); }
+  .chip.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .chip .n { opacity: 0.55; margin-left: 5px; }
+
+  /* ---- banner ---- */
+  .banner {
+    background: var(--paper-2);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+  }
+
+  /* ---- article list ---- */
+  .list { list-style: none; }
+
+  .item {
+    padding: 22px 0;
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 86px 1fr;
+    gap: 4px 20px;
+    animation: rise 0.5s ease both;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+  .item .when {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    padding-top: 5px;
+    line-height: 1.5;
+  }
+  .item .when .ago { color: var(--accent-deep); display: block; font-size: 12px; }
+
+  .item .body { min-width: 0; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; align-items: center; }
+  .tag-cat {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .tag-src { font-size: 11.5px; color: var(--ink-faint); }
+  .tag-prio {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 1px 7px;
+    background: var(--accent);
+    color: var(--paper);
+    border-radius: 2px;
+  }
+  .meta .warn { color: var(--accent-deep); }
+
+  .item h2 {
+    font-family: "Newsreader", serif;
+    font-weight: 500;
+    font-size: 1.32rem;
+    line-height: 1.28;
+    letter-spacing: -0.005em;
+  }
+  .item h2 a {
+    color: var(--ink);
+    text-decoration: none;
+    background-image: linear-gradient(var(--accent), var(--accent));
+    background-size: 0% 1.5px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.2s ease, color 0.2s ease;
+  }
+  .item h2 a:hover { color: var(--accent-deep); background-size: 100% 1.5px; }
+
+  .item .summary {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* ---- empty / error ---- */
+  .notice {
+    text-align: center;
+    padding: 70px 20px;
+    color: var(--ink-faint);
+    font-family: "Newsreader", serif;
+    font-size: 1.2rem;
+    font-style: italic;
+  }
+
+  /* ---- source status ---- */
+  details.sources {
+    margin-top: 36px;
+    border-top: 1px solid var(--rule);
+    padding-top: 18px;
+  }
+  details.sources summary {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .src-grid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 6px 18px;
+  }
+  .src-row {
+    font-size: 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--ink-soft);
+  }
+  .src-row .led { font-size: 9px; line-height: 1; }
+  .led.ok { color: #3f7d3f; }
+  .led.bad { color: var(--accent); }
+  .src-row .cnt { margin-left: auto; font-family: "IBM Plex Mono", monospace; color: var(--ink-faint); }
+
+  footer {
+    margin-top: 30px;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    font-family: "IBM Plex Mono", monospace;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 560px) {
+    .item { grid-template-columns: 1fr; gap: 8px; }
+    .item .when { padding-top: 0; display: flex; gap: 10px; align-items: baseline; }
+    .item .when .ago { display: inline; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">社内 AI インテリジェンス &nbsp;/&nbsp; 自動更新</div>
+    <h1>AI <em>情報</em>ボード</h1>
+    <div class="meta" id="meta">読み込み中…</div>
+  </header>
+
+  <p class="disclaimer">
+    このページは、AI関連の<b>公開情報</b>をRSSから自動収集した社内向け情報板です。
+    内容は各配信元の公開情報に基づきます。詳細は必ず元記事をご確認ください。
+  </p>
+
+  <div class="toolbar">
+    <input class="search" id="search" type="search" placeholder="キーワードで絞り込み（タイトル・概要・ソース）" />
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div id="banner-slot"></div>
+  <ul class="list" id="list"></ul>
+  <div class="notice" id="notice" style="display:none"></div>
+
+  <details class="sources">
+    <summary>ソースの取得状況</summary>
+    <div class="src-grid" id="src-grid"></div>
+  </details>
+
+  <footer id="footer"></footer>
+
+</div>
+
+<script>
+// data.json が読めないとき（初回公開前・ローカルプレビュー）用のサンプル
+const SAMPLE = {
+  generatedAt: new Date().toISOString(),
+  feedCount: 3, okCount: 3, itemCount: 3,
+  sources: [
+    { name: "サンプルソースA", category: "ニュース", ok: true, count: 1 },
+    { name: "サンプルソースB", category: "研究", ok: true, count: 1 },
+    { name: "サンプルソースC", category: "企業ブログ", ok: true, count: 1 }
+  ],
+  items: [
+    { title: "これはサンプル表示です（data.json が見つかりません）", link: "#",
+      source: "サンプルソースA", category: "ニュース", lang: "ja", priority: "high",
+      summary: "GitHub Actions が一度実行されると、ここに実際のRSS記事が並びます。手動実行は Actions タブの「Run workflow」から行えます。",
+      publishedAt: new Date(Date.now() - 3600e3).toISOString() },
+    { title: "Sample research item from arXiv-style feed", link: "#",
+      source: "サンプルソースB", category: "研究", lang: "en", priority: "normal",
+      summary: "Once the workflow runs, real abstracts and headlines replace this placeholder content automatically.",
+      publishedAt: new Date(Date.now() - 8 * 3600e3).toISOString() },
+    { title: "Sample company blog post", link: "#",
+      source: "サンプルソースC", category: "企業ブログ", lang: "en", priority: "normal",
+      summary: "Edit feeds.json to add or remove sources. Broken feeds are skipped automatically.",
+      publishedAt: new Date(Date.now() - 26 * 3600e3).toISOString() }
+  ]
+};
+
+const state = { data: null, category: "すべて", query: "", isSample: false };
+
+const fmtJST = (iso) =>
+  new Date(iso).toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit",
+    day: "2-digit", hour: "2-digit", minute: "2-digit"
+  });
+
+function timeAgo(iso) {
+  if (!iso) return { line1: "日付不明", line2: "" };
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3600e3);
+  const d = new Date(iso);
+  const dateStr = d.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", month: "2-digit", day: "2-digit" });
+  let ago;
+  if (h < 1) ago = "たった今";
+  else if (h < 24) ago = h + "時間前";
+  else ago = Math.floor(h / 24) + "日前";
+  return { line1: dateStr, line2: ago };
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function render() {
+  const d = state.data;
+  const list = document.getElementById("list");
+  const notice = document.getElementById("notice");
+
+  // メタ情報
+  const failed = d.feedCount - d.okCount;
+  document.getElementById("meta").innerHTML =
+    `最終更新 <b>${fmtJST(d.generatedAt)}</b> <span class="dot">/</span> ` +
+    `全 <b>${d.itemCount}</b> 件 <span class="dot">/</span> ` +
+    `ソース <b>${d.okCount}/${d.feedCount}</b> 稼働` +
+    (failed > 0 ? ` <span class="warn">（${failed}件取得失敗）</span>` : "");
+
+  // カテゴリチップ
+  const counts = {};
+  d.items.forEach((it) => { counts[it.category] = (counts[it.category] || 0) + 1; });
+  const cats = ["すべて", ...Object.keys(counts).sort()];
+  document.getElementById("chips").innerHTML = cats.map((c) => {
+    const n = c === "すべて" ? d.items.length : counts[c];
+    return `<button class="chip${c === state.category ? " active" : ""}" data-cat="${escapeHtml(c)}">` +
+      `${escapeHtml(c)}<span class="n">${n}</span></button>`;
+  }).join("");
+
+  // 絞り込み
+  const q = state.query.trim().toLowerCase();
+  let items = d.items.filter((it) => {
+    if (state.category !== "すべて" && it.category !== state.category) return false;
+    if (q) {
+      const hay = (it.title + " " + it.summary + " " + it.source).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // 描画
+  if (items.length === 0) {
+    list.innerHTML = "";
+    notice.style.display = "block";
+    notice.textContent = "該当する記事がありません。";
+  } else {
+    notice.style.display = "none";
+    list.innerHTML = items.map((it, i) => {
+      const t = timeAgo(it.publishedAt);
+      const linkOpen = it.link && it.link !== "#"
+        ? `<a href="${escapeHtml(it.link)}" target="_blank" rel="noopener">`
+        : `<a>`;
+      return `<li class="item" style="animation-delay:${Math.min(i * 35, 500)}ms">
+        <div class="when">${escapeHtml(t.line1)}<span class="ago">${escapeHtml(t.line2)}</span></div>
+        <div class="body">
+          <div class="tags">
+            ${it.priority === "high" ? `<span class="tag-prio">重点</span>` : ""}
+            <span class="tag-cat">${escapeHtml(it.category)}</span>
+            <span class="tag-src">${escapeHtml(it.source)}</span>
+          </div>
+          <h2>${linkOpen}${escapeHtml(it.title)}</a></h2>
+          ${it.summary ? `<p class="summary">${escapeHtml(it.summary)}</p>` : ""}
+        </div>
+      </li>`;
+    }).join("");
+  }
+
+  // ソース状況
+  document.getElementById("src-grid").innerHTML = (d.sources || []).map((s) =>
+    `<div class="src-row">
+      <span class="led ${s.ok ? "ok" : "bad"}">●</span>
+      <span>${escapeHtml(s.name)}</span>
+      <span class="cnt">${s.ok ? s.count + "件" : "失敗"}</span>
+    </div>`).join("");
+
+  document.getElementById("footer").textContent =
+    "毎日 06:00（JST）ごろに自動更新 / 取得元は feeds.json で編集可能" +
+    (state.isSample ? " / 現在サンプル表示中" : "");
+}
+
+function attachEvents() {
+  document.getElementById("chips").addEventListener("click", (e) => {
+    const btn = e.target.closest(".chip");
+    if (!btn) return;
+    state.category = btn.dataset.cat;
+    render();
+  });
+  let timer;
+  document.getElementById("search").addEventListener("input", (e) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { state.query = e.target.value; render(); }, 150);
+  });
+}
+
+async function init() {
+  attachEvents();
+  try {
+    const res = await fetch("./data.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("data.json not found");
+    state.data = await res.json();
+  } catch (e) {
+    state.data = SAMPLE;
+    state.isSample = true;
+    document.getElementById("banner-slot").innerHTML =
+      `<div class="banner">data.json をまだ読み込めていないため、サンプルを表示しています。` +
+      `GitHub Actions が一度実行されると実データに切り替わります。</div>`;
+  }
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
