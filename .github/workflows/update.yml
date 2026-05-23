@@ -1,0 +1,55 @@
+name: AI News 更新
+
+# 実行タイミング
+on:
+  schedule:
+    # UTC 21:17 = 日本時間 06:17 ごろ。毎日1回実行。
+    # 毎時00分は混雑しやすいため、あえて17分にずらしている。
+    # （それでも GitHub の負荷状況により多少ずれることがあります）
+    - cron: '17 21 * * *'
+  workflow_dispatch: {}  # Actions 画面の「Run workflow」ボタンで手動実行も可能
+
+# GitHub Pages への公開に必要な権限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時実行を1つに制限
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 依存パッケージをインストール
+        run: npm install
+
+      - name: RSS を収集して data.json を生成
+        run: node scripts/build.mjs
+
+      - name: 公開ファイルをアップロード
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: GitHub Pages へ公開
+        id: deployment
+        uses: actions/deploy-pages@v4
