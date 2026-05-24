@@ -1,4 +1,86 @@
 [
-  { "name": "Node.js Releases", "url": "https://github.com/nodejs/node/releases.atom", "category": "ニュース", "lang": "en", "priority": "normal" },
-  { "name": "VSCode Releases", "url": "https://github.com/microsoft/vscode/releases.atom", "category": "企業ブログ", "lang": "en", "priority": "high" }
+  {
+    "name": "OpenAI News",
+    "url": "https://openai.com/news/rss.xml",
+    "category": "企業ブログ",
+    "lang": "en",
+    "priority": "high"
+  },
+  {
+    "name": "Google AI Blog",
+    "url": "https://blog.google/technology/ai/rss/",
+    "category": "企業ブログ",
+    "lang": "en",
+    "priority": "high"
+  },
+  {
+    "name": "Hugging Face Blog",
+    "url": "https://huggingface.co/blog/feed.xml",
+    "category": "企業ブログ",
+    "lang": "en",
+    "priority": "normal"
+  },
+  {
+    "name": "arXiv cs.AI",
+    "url": "https://rss.arxiv.org/rss/cs.AI",
+    "category": "研究",
+    "lang": "en",
+    "priority": "normal"
+  },
+  {
+    "name": "arXiv cs.LG",
+    "url": "https://rss.arxiv.org/rss/cs.LG",
+    "category": "研究",
+    "lang": "en",
+    "priority": "normal"
+  },
+  {
+    "name": "TechCrunch AI",
+    "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+    "category": "ニュース",
+    "lang": "en",
+    "priority": "normal"
+  },
+  {
+    "name": "VentureBeat AI",
+    "url": "https://venturebeat.com/category/ai/feed/",
+    "category": "ニュース",
+    "lang": "en",
+    "priority": "normal"
+  },
+  {
+    "name": "MIT Technology Review (AI)",
+    "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+    "category": "ニュース",
+    "lang": "en",
+    "priority": "normal"
+  },
+  {
+    "name": "The Verge AI",
+    "url": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+    "category": "ニュース",
+    "lang": "en",
+    "priority": "normal"
+  },
+  {
+    "name": "ITmedia AI＋",
+    "url": "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml",
+    "category": "国内",
+    "lang": "ja",
+    "priority": "high"
+  },
+  {
+    "name": "国土交通省 プレスリリース",
+    "url": "https://www.mlit.go.jp/pressrelease.rdf",
+    "category": "官公庁",
+    "lang": "ja",
+    "priority": "high"
+  },
+  {
+    "name": "デジタル庁 新着情報",
+    "url": "https://www.digital.go.jp/rss/news.xml",
+    "category": "官公庁",
+    "lang": "ja",
+    "priority": "normal"
+  }
 ]
