@@ -37,6 +37,10 @@ jobs:
 
       - name: RSS を収集して data.json を生成
         run: node scripts/build.mjs
+        # GitHub Secrets に登録した ANTHROPIC_API_KEY を build.mjs へ渡す。
+        # 未登録の場合は空文字になり、build.mjs 側がAI処理を自動スキップする。
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: 公開ファイルをアップロード
         uses: actions/upload-pages-artifact@v3
