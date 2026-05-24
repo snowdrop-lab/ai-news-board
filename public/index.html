@@ -77,7 +77,7 @@
   /* ---- toolbar ---- */
   .toolbar {
     display: flex; flex-direction: column; align-items: center;
-    gap: 16px; margin-bottom: 32px;
+    gap: 18px; margin-bottom: 32px;
   }
   .search {
     width: 100%; max-width: 520px;
@@ -97,6 +97,17 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
+
+  /* ---- filter groups (部門 / カテゴリ) ---- */
+  .filter-group {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 9px; width: 100%;
+  }
+  .filter-label {
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.16em; color: var(--ink-faint);
+  }
+
   .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
   .chip {
     font-family: var(--font);
@@ -143,6 +154,13 @@
     font-size: 10.5px; font-weight: 700;
     padding: 3px 10px; border-radius: 999px;
     background: var(--accent-soft); color: var(--accent-deep);
+  }
+  /* 部門タグ（カードに表示する控えめなアウトラインのピル） */
+  .dept {
+    font-size: 10px; font-weight: 500;
+    padding: 2.5px 9px; border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #fff; color: var(--ink-soft);
   }
   .src { font-size: 11.5px; color: var(--ink-faint); }
 
@@ -246,7 +264,16 @@
 
   <div class="toolbar">
     <input class="search" id="search" type="search" placeholder="キーワードで絞り込み（タイトル・概要・ソース）" />
-    <div class="chips" id="chips"></div>
+    <!-- 部門フィルター（AI処理で部門タグが付いた記事がある時だけ表示） -->
+    <div class="filter-group" id="dept-group" style="display:none">
+      <div class="filter-label">部門</div>
+      <div class="chips" id="dept-chips"></div>
+    </div>
+    <!-- カテゴリ（配信元の種別）フィルター -->
+    <div class="filter-group">
+      <div class="filter-label">カテゴリ</div>
+      <div class="chips" id="chips"></div>
+    </div>
   </div>
 
   <div id="banner-slot"></div>
@@ -267,42 +294,47 @@
 
 <script>
 // data.json が読めないとき（初回公開前・プレビュー）用のサンプル
+// 各記事の末尾要素は部門タグの配列。
 const SAMPLE = (() => {
   const base = [
     ["国内", "ITmedia AI＋", "high", "ja", "国内主要ベンダーが生成AIの社内活用ガイドラインを公開、現場導入の指針に",
-      "事務・制作・営業など部門ごとの活用例と注意点を整理した実務向けの内容。社内展開のたたき台として参照しやすい。"],
+      "事務・制作・営業など部門ごとの活用例と注意点を整理した実務向けの内容。社内展開のたたき台として参照しやすい。",
+      ["営業", "内部事務", "サイン"]],
     ["ニュース", "TechCrunch AI", "normal", "en", "新興スタートアップが軽量な推論モデルを発表、エッジ環境での動作を想定",
-      "クラウドに依存せず端末側で動かせる小型モデル。コストとプライバシーの両面で関心を集めている。"],
+      "クラウドに依存せず端末側で動かせる小型モデル。コストとプライバシーの両面で関心を集めている。", []],
     ["企業ブログ", "OpenAI News", "high", "en", "開発者向けに新しいAPI機能を追加、長文処理とツール連携を強化",
-      "より長い文脈の保持と外部ツールの呼び出しに対応。既存アプリへの組み込みが容易になるとしている。"],
+      "より長い文脈の保持と外部ツールの呼び出しに対応。既存アプリへの組み込みが容易になるとしている。", []],
     ["研究", "arXiv cs.AI", "normal", "en", "大規模言語モデルの安全性評価に関する新しいベンチマークを提案",
-      "想定外の入力に対する挙動を体系的に測る枠組み。評価指標の標準化に向けた一歩と位置づけられる。"],
+      "想定外の入力に対する挙動を体系的に測る枠組み。評価指標の標準化に向けた一歩と位置づけられる。", []],
     ["国内", "ITmedia AI＋", "high", "ja", "自治体が窓口業務にAIアシスタントを試験導入、問い合わせ対応を効率化",
-      "定型的な照会への一次対応をAIが担う実証。職員の負担軽減と待ち時間短縮の効果を検証する。"],
+      "定型的な照会への一次対応をAIが担う実証。職員の負担軽減と待ち時間短縮の効果を検証する。", ["内部事務"]],
     ["ニュース", "MIT Technology Review (AI)", "normal", "en", "AIによる科学研究の加速をめぐる議論、期待と課題の両面が語られる",
-      "研究プロセスのどこを自動化できるか、再現性をどう担保するかが論点として浮上している。"],
+      "研究プロセスのどこを自動化できるか、再現性をどう担保するかが論点として浮上している。", []],
     ["企業ブログ", "Google AI Blog", "high", "en", "マルチモーダルモデルの新版を公開、画像と文章の同時理解を改善",
-      "図表を含む資料の読み取り精度が向上。業務文書の処理用途での活用が見込まれる。"],
+      "図表を含む資料の読み取り精度が向上。業務文書の処理用途での活用が見込まれる。", ["内部事務"]],
     ["研究", "arXiv cs.LG", "normal", "en", "学習効率を高める新しい最適化手法、計算資源の削減につながる可能性",
-      "同等の精度をより少ない計算で達成したと報告。再現実験での検証が今後の焦点となる。"],
+      "同等の精度をより少ない計算で達成したと報告。再現実験での検証が今後の焦点となる。", []],
     ["ニュース", "VentureBeat AI", "normal", "en", "企業のAI導入は実証段階から本番運用へ、投資対効果の可視化が課題に",
-      "試験導入は広がる一方、定量的な効果測定の難しさが多くの組織で共通の悩みとなっている。"],
+      "試験導入は広がる一方、定量的な効果測定の難しさが多くの組織で共通の悩みとなっている。", ["営業"]],
     ["国内", "ITmedia AI＋", "normal", "ja", "国内企業がAI人材の社内育成プログラムを拡充、実務直結の研修を重視",
-      "座学だけでなく自部門の課題を題材にした演習を組み込み、定着率の向上を狙う。"],
+      "座学だけでなく自部門の課題を題材にした演習を組み込み、定着率の向上を狙う。", ["内部事務"]],
     ["企業ブログ", "Hugging Face Blog", "normal", "en", "オープンモデルのエコシステムが拡大、評価と共有の仕組みが整いつつある",
-      "モデルの比較や再利用がしやすくなり、小規模チームでも検証を進めやすくなっている。"],
+      "モデルの比較や再利用がしやすくなり、小規模チームでも検証を進めやすくなっている。", []],
     ["ニュース", "The Verge AI", "normal", "en", "生成AIの著作権をめぐる議論が継続、各国で制度整備の動きが進む",
-      "学習データの扱いと生成物の権利関係について、立場の異なる主張が並行して示されている。"],
+      "学習データの扱いと生成物の権利関係について、立場の異なる主張が並行して示されている。", ["サイン"]],
+    ["官公庁", "国土交通省 プレスリリース", "high", "ja", "屋外広告物の安全点検に関する手引きを改定、点検項目を明確化",
+      "老朽化した看板の落下防止に向け、点検の頻度と記録の残し方の目安を示した。本設サインの管理に直結。",
+      ["サイン", "営業"]],
     ["研究", "arXiv cs.AI", "normal", "en", "エージェント型AIの協調動作に関する研究、複数モデルの分担を検証",
-      "タスクを分割して複数のモデルが協力する構成の有効性と限界を実験的に検討している。"],
-    ["国内", "ITmedia AI＋", "high", "ja", "AIの業務活用に関する社内ルール策定の動きが広がる、情報管理が論点",
-      "機密情報の入力可否や成果物の確認体制など、運用面のルール整備が各社で進んでいる。"],
-    ["企業ブログ", "OpenAI News", "normal", "en", "推論コストの低減に向けた取り組みを紹介、提供価格の見直しにも言及",
-      "高頻度の利用を想定したコスト最適化の方針を説明。大規模な実装での採用を後押しするとしている。"]
+      "タスクを分割して複数のモデルが協力する構成の有効性と限界を実験的に検討している。", []],
+    ["官公庁", "デジタル庁 新着情報", "normal", "ja", "行政手続のデジタル化に関する新しい指針を公表、民間の参照も想定",
+      "様式の標準化とデータ連携の考え方を整理。EC事業者の電子請求対応の参考にもなる。", ["EC", "内部事務"]]
   ];
+  const departments = ["営業", "内部事務", "指令塔・第2営業", "サイン", "EC"];
   return {
     generatedAt: new Date().toISOString(),
-    feedCount: 10, okCount: 9, itemCount: base.length,
+    feedCount: 12, okCount: 11, itemCount: base.length,
+    aiEnabled: true, departments: departments, excludedCount: 2,
     sources: [
       { name: "OpenAI News", ok: true, count: 2 },
       { name: "Google AI Blog", ok: true, count: 1 },
@@ -312,12 +344,17 @@ const SAMPLE = (() => {
       { name: "TechCrunch AI", ok: true, count: 1 },
       { name: "VentureBeat AI", ok: true, count: 1 },
       { name: "MIT Technology Review (AI)", ok: true, count: 1 },
-      { name: "The Verge AI", ok: false, error: "sample" },
-      { name: "ITmedia AI＋", ok: true, count: 4 }
+      { name: "The Verge AI", ok: true, count: 1 },
+      { name: "ITmedia AI＋", ok: true, count: 3 },
+      { name: "国土交通省 プレスリリース", ok: true, count: 1 },
+      { name: "デジタル庁 新着情報", ok: false, error: "sample" }
     ],
     items: base.map((b, i) => ({
       category: b[0], source: b[1], priority: b[2], lang: b[3],
-      title: b[4], summary: b[5], link: "#",
+      title: b[4], summary: b[5],
+      titleJa: b[4], summaryJa: b[5],
+      departments: b[6] || [],
+      link: "#",
       publishedAt: new Date(Date.now() - (i * 5 + 2) * 3600e3).toISOString()
     }))
   };
@@ -325,7 +362,14 @@ const SAMPLE = (() => {
 
 const INITIAL_VISIBLE = 12;
 const LOAD_STEP = 12;
-const state = { data: null, category: "すべて", query: "", visible: INITIAL_VISIBLE, isSample: false };
+const state = {
+  data: null,
+  category: "すべて",
+  department: "すべて",
+  query: "",
+  visible: INITIAL_VISIBLE,
+  isSample: false
+};
 
 const fmtJST = (iso) =>
   new Date(iso).toLocaleString("ja-JP", {
@@ -355,9 +399,20 @@ function escapeHtml(s) {
 function getFiltered() {
   const q = state.query.trim().toLowerCase();
   return state.data.items.filter((it) => {
+    // カテゴリ絞り込み
     if (state.category !== "すべて" && it.category !== state.category) return false;
+    // 部門絞り込み（記事の部門タグ配列に選択中の部門が含まれるか）
+    if (state.department !== "すべて") {
+      const depts = Array.isArray(it.departments) ? it.departments : [];
+      if (!depts.includes(state.department)) return false;
+    }
+    // キーワード絞り込み（原文・日本語訳・要約・ソースをまとめて対象にする）
     if (q) {
-      const hay = (it.title + " " + (it.summary || "") + " " + it.source).toLowerCase();
+      const hay = (
+        (it.title || "") + " " + (it.titleJa || "") + " " +
+        (it.summary || "") + " " + (it.summaryJa || "") + " " +
+        (it.source || "")
+      ).toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -374,14 +429,22 @@ function cardHtml(it, i, animateFrom) {
     ? `<a class="${cls}"${style} href="${escapeHtml(it.link)}" target="_blank" rel="noopener">`
     : `<div class="${cls}"${style}>`;
   const close = real ? "</a>" : "</div>";
+
+  // 表示は日本語訳を優先し、無ければ原文にフォールバックする
+  const title = it.titleJa || it.title || "(無題)";
+  const summaryRaw = it.summaryJa || it.summary || "";
+  const summaryHtml = escapeHtml(summaryRaw).replace(/\n/g, "<br>");
+  const depts = Array.isArray(it.departments) ? it.departments : [];
+
   return open +
     `<div class="tags">` +
       (it.priority === "high" ? `<span class="badge">重点</span>` : "") +
       `<span class="cat">${escapeHtml(it.category)}</span>` +
+      depts.map((d) => `<span class="dept">${escapeHtml(d)}</span>`).join("") +
       `<span class="src">${escapeHtml(it.source)}</span>` +
     `</div>` +
-    `<h2>${escapeHtml(it.title)}</h2>` +
-    `<p class="summary">${escapeHtml(it.summary || "")}</p>` +
+    `<h2>${escapeHtml(title)}</h2>` +
+    `<p class="summary">${summaryHtml}</p>` +
     `<div class="when"><span>${escapeHtml(t.date)}</span>` +
       (t.ago ? `<span class="ago">${escapeHtml(t.ago)}</span>` : "") +
     `</div>` +
@@ -398,6 +461,30 @@ function render(animateFrom = 0) {
     `全 <b>${d.itemCount}</b> 件<span class="sep">·</span>` +
     `ソース <b>${d.okCount}/${d.feedCount}</b> 稼働` +
     (failed > 0 ? ` <span class="warn">（${failed}件取得失敗）</span>` : "");
+
+  // 部門チップ（AI処理で部門タグが付いた記事がある時だけ表示）
+  const hasDepts = d.items.some((it) => Array.isArray(it.departments) && it.departments.length);
+  const deptGroup = document.getElementById("dept-group");
+  if (hasDepts) {
+    deptGroup.style.display = "flex";
+    const deptList = d.departments || [];
+    const dcount = {};
+    deptList.forEach((dep) => { dcount[dep] = 0; });
+    d.items.forEach((it) => {
+      (it.departments || []).forEach((dep) => {
+        if (dep in dcount) dcount[dep]++;
+      });
+    });
+    const deptChips = ["すべて", ...deptList];
+    document.getElementById("dept-chips").innerHTML = deptChips.map((c) => {
+      const n = c === "すべて" ? d.items.length : (dcount[c] || 0);
+      return `<button class="chip${c === state.department ? " active" : ""}" data-dept="${escapeHtml(c)}">` +
+        `${escapeHtml(c)}<span class="n">${n}</span></button>`;
+    }).join("");
+  } else {
+    deptGroup.style.display = "none";
+    state.department = "すべて";
+  }
 
   // カテゴリチップ
   const counts = {};
@@ -444,10 +531,19 @@ function render(animateFrom = 0) {
 
   document.getElementById("footer").textContent =
     "毎日 06:17（JST）ごろに自動更新 / 取得元は feeds.json で編集可能" +
+    (d.excludedCount > 0 ? ` / ネガティブ記事 ${d.excludedCount} 件を除外` : "") +
     (state.isSample ? " / 現在サンプル表示中" : "");
 }
 
 function attachEvents() {
+  document.getElementById("dept-chips").addEventListener("click", (e) => {
+    const btn = e.target.closest(".chip");
+    if (!btn) return;
+    state.department = btn.dataset.dept;
+    state.visible = INITIAL_VISIBLE;
+    render(0);
+  });
+
   document.getElementById("chips").addEventListener("click", (e) => {
     const btn = e.target.closest(".chip");
     if (!btn) return;
